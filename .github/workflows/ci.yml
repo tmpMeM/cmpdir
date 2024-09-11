@@ -3,31 +3,30 @@ name: Go Build and Release
 on:
   push:
     tags:
-      - 'v*.*.*' # 只在推送符合版本标签的分支时触发
+      - 'v*' # 只在推送符合版本标签的分支时触发
   pull_request:
     branches:
       - main
 
 jobs:
   build:
-    name: Build Go Program
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.20'  
-
+          go-version: '1.22'  
+      - name: Display Go version
+        run: go version
       - name: Build Go executable
         run: |
           go build -o cmddir.exe ./main.go # 根据实际情况修改路径和文件名
 
       - name: Upload executable as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cmddir
           path: cmddir.exe
@@ -37,14 +36,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.20' # 使用你需要的 Go 版本
-
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
