@@ -21,13 +21,13 @@ jobs:
         run: go version
       - name: Build Go executable
         run: |
-          GOOS=windows GOARCH=amd64 go build -o cmddir.exe ./main.go
+          GOOS=windows GOARCH=amd64 go build -o cmpdir.exe ./main.go
 
       - name: Upload executable as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cmddir
-          path: cmddir.exe
+          name: cmpdir
+          path: cmpdir.exe
 
   release:
     name: Create Release
@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: cmddir
+          name: cmpdir
 
       - name: Create GitHub Release
         id: create_release
@@ -69,6 +69,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.id,
-              name: 'cmddir.exe',
-              data: require('fs').readFileSync('cmddir.exe')
+              name: 'cmpdir.exe',
+              data: require('fs').readFileSync('cmpdir.exe')
             });
