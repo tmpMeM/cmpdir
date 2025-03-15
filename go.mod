@@ -1,3 +1,3 @@
-module demo
+module cmpdir
 
 go 1.22
