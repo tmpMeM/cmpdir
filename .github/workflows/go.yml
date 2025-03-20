@@ -4,9 +4,9 @@ on:
   push:
     tags:
       - 'v*' # 只在推送符合版本标签的分支时触发
-  # pull_request:
-  #   branches:
-  #     - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -22,47 +22,46 @@ jobs:
       - name: Build Go executable
         run: |
           GOOS=windows GOARCH=amd64 go build -o cmpdir.exe ./main.go && \
-          GOOS=windows GOARCH=amd64 go build -o cmpdir_movefile.exe ./cmpdir_movefile/main.go
+          GOOS=windows GOARCH=amd64 go build -o movefile.exe ./cmpdir_movefile/main.go
 
       - name: Upload executable as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cmpdir
-          path: cmpdir.exe
+          name: executables
+          path: |
+            cmpdir.exe
+            movefile.exe
 
-      - name: Upload executable as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cmpdir_movefile
-          path: cmpdir_movefile.exe
+release:
+  name: Create Release
+  runs-on: ubuntu-latest
+  needs: build
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/download-artifact@v4
+      with:
+        name: executables
+        path: .
 
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
 
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: cmpdir
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const tagName = context.ref.replace('refs/tags/', '');
-            const { data: existingRelease } = await github.rest.repos.listReleases({
+          const tagName = context.ref.replace('refs/tags/', '');
+          
+          let release;
+          try {
+            release = await github.rest.repos.getReleaseByTag({
               owner: context.repo.owner,
-              repo: context.repo.repo
+              repo: context.repo.repo,
+              tag: tagName
             });
-            
-            let release;
-            if (existingRelease.some(r => r.tag_name === tagName)) {
-              console.log(`Release with tag ${tagName} already exists.`);
-              release = existingRelease.find(r => r.tag_name === tagName);
-            } else {
+          } catch (error) {
+            if (error.status === 404) {
               release = await github.rest.repos.createRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -71,21 +70,25 @@ jobs:
                 draft: false,
                 prerelease: false
               });
+            } else {
+              throw error;
             }
+          }
 
+          async function uploadAsset(assetPath, assetName) {
+            const stat = fs.statSync(assetPath);
             await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.id,
-              name: 'cmpdir.exe',
-              data: require('fs').readFileSync('cmpdir.exe')
+              name: assetName,
+              data: fs.createReadStream(assetPath),
+              headers: {
+                'content-type': 'application/octet-stream',
+                'content-length': stat.size
+              }
             });
+          }
 
-
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.id,
-              name: 'cmpdir_movefile.exe',
-              data: require('fs').readFileSync('cmpdir_movefile.exe')
-            });
+          await uploadAsset('cmpdir.exe', 'cmpdir.exe');
+          await uploadAsset('movefile.exe', 'movefile.exe');
