@@ -4,9 +4,9 @@ on:
   push:
     tags:
       - 'v*' # 只在推送符合版本标签的分支时触发
-  pull_request:
-    branches:
-      - main
+  # pull_request:
+  #   branches:
+  #     - main
 
 jobs:
   build:
@@ -21,7 +21,7 @@ jobs:
         run: go version
       - name: Build Go executable
         run: |
-          GOOS=windows GOARCH=amd64 go build -o cmpdir.exe ./main.go
+          GOOS=windows GOARCH=amd64 go build -o cmpdir.exe ./main.go && \
           GOOS=windows GOARCH=amd64 go build -o cmpdir_movefile.exe ./cmpdir_movefile/main.go
 
       - name: Upload executable as artifact
@@ -29,6 +29,13 @@ jobs:
         with:
           name: cmpdir
           path: cmpdir.exe
+
+      - name: Upload executable as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmpdir_movefile
+          path: cmpdir_movefile.exe
+
 
   release:
     name: Create Release
