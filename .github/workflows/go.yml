@@ -32,63 +32,63 @@ jobs:
             cmpdir.exe
             movefile.exe
 
-release:
-  name: Create Release
-  runs-on: ubuntu-latest
-  needs: build
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: executables
-        path: .
-
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const path = require('path');
-
-          const tagName = context.ref.replace('refs/tags/', '');
-          
-          let release;
-          try {
-            release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: tagName
-            });
-          } catch (error) {
-            if (error.status === 404) {
-              release = await github.rest.repos.createRelease({
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: executables
+          path: .
+  
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+  
+            const tagName = context.ref.replace('refs/tags/', '');
+            
+            let release;
+            try {
+              release = await github.rest.repos.getReleaseByTag({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                tag_name: tagName,
-                name: `Release ${tagName}`,
-                draft: false,
-                prerelease: false
+                tag: tagName
               });
-            } else {
-              throw error;
-            }
-          }
-
-          async function uploadAsset(assetPath, assetName) {
-            const stat = fs.statSync(assetPath);
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.id,
-              name: assetName,
-              data: fs.createReadStream(assetPath),
-              headers: {
-                'content-type': 'application/octet-stream',
-                'content-length': stat.size
+            } catch (error) {
+              if (error.status === 404) {
+                release = await github.rest.repos.createRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag_name: tagName,
+                  name: `Release ${tagName}`,
+                  draft: false,
+                  prerelease: false
+                });
+              } else {
+                throw error;
               }
-            });
-          }
-
-          await uploadAsset('cmpdir.exe', 'cmpdir.exe');
-          await uploadAsset('movefile.exe', 'movefile.exe');
+            }
+  
+            async function uploadAsset(assetPath, assetName) {
+              const stat = fs.statSync(assetPath);
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+                name: assetName,
+                data: fs.createReadStream(assetPath),
+                headers: {
+                  'content-type': 'application/octet-stream',
+                  'content-length': stat.size
+                }
+              });
+            }
+  
+            await uploadAsset('cmpdir.exe', 'cmpdir.exe');
+            await uploadAsset('movefile.exe', 'movefile.exe');
