@@ -42,53 +42,44 @@ jobs:
         with:
           name: executables
           path: .
-  
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const path = require('path');
-  
             const tagName = context.ref.replace('refs/tags/', '');
+            const { data: existingRelease } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
             
             let release;
-            try {
-              release = await github.rest.repos.getReleaseByTag({
+            if (existingRelease.some(r => r.tag_name === tagName)) {
+              console.log(`Release with tag ${tagName} already exists.`);
+              release = existingRelease.find(r => r.tag_name === tagName);
+            } else {
+              release = await github.rest.repos.createRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                tag: tagName
-              });
-            } catch (error) {
-              if (error.status === 404) {
-                release = await github.rest.repos.createRelease({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  tag_name: tagName,
-                  name: `Release ${tagName}`,
-                  draft: false,
-                  prerelease: false
-                });
-              } else {
-                throw error;
-              }
-            }
-  
-            async function uploadAsset(assetPath, assetName) {
-              const stat = fs.statSync(assetPath);
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: release.id,
-                name: assetName,
-                data: fs.createReadStream(assetPath),
-                headers: {
-                  'content-type': 'application/octet-stream',
-                  'content-length': stat.size
-                }
+                tag_name: tagName,
+                name: `Release ${tagName}`,
+                draft: false,
+                prerelease: false
               });
             }
-  
-            await uploadAsset('cmpdir.exe', 'cmpdir.exe');
-            await uploadAsset('movefile.exe', 'movefile.exe');
+
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id,
+              name: 'cmpdir.exe',
+              data: require('fs').readFileSync('cmpdir.exe')
+            });
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id,
+              name: 'movefile.exe',
+              data: require('fs').readFileSync('movefile.exe')
+            });
