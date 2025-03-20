@@ -22,6 +22,7 @@ jobs:
       - name: Build Go executable
         run: |
           GOOS=windows GOARCH=amd64 go build -o cmpdir.exe ./main.go
+          GOOS=windows GOARCH=amd64 go build -o cmpdir_movefile.exe ./cmpdir_movefile/main.go
 
       - name: Upload executable as artifact
         uses: actions/upload-artifact@v4
@@ -71,4 +72,13 @@ jobs:
               release_id: release.id,
               name: 'cmpdir.exe',
               data: require('fs').readFileSync('cmpdir.exe')
+            });
+
+
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id,
+              name: 'cmpdir_movefile.exe',
+              data: require('fs').readFileSync('cmpdir_movefile.exe')
             });
