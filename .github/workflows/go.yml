@@ -4,9 +4,9 @@ on:
   push:
     tags:
       - 'v*' # 只在推送符合版本标签的分支时触发
-  pull_request:
-    branches:
-      - main
+  # pull_request:
+  #   branches:
+  #     - main
 
 jobs:
   build:
