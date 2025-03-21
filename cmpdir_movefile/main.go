@@ -9,6 +9,9 @@ import (
 )
 
 func main() {
+	defer func() {
+		fmt.Scanln()
+	}()
 	runDir := "./" // 当前运行目录
 	execName, err := os.Executable()
 	if err != nil {
